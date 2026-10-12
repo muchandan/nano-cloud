@@ -1,0 +1,25 @@
+# Node dependencies
+node_modules/
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+.env.production
+nanocloud_credentials.json
+
+# Logs & runtime data
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Temporary file uploads
+uploads/
+public/uploads/
+tmp/
+
+# Operating system artifacts
+.DS_Store
+Thumbs.db
