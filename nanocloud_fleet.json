@@ -1,25 +1,11 @@
 {
   "devices": {
-    "dev_d7b97fdc73c20edf8331536cfccaedb79c02165efc2df8ba": {
-      "id": "Tablet",
-      "platform": "android",
-      "arch": "arm64",
-      "cores": 1,
-      "pairedAt": "2026-10-04T17:29:39.867Z"
-    },
-    "dev_90abbedb712f088edac2614fff52732256f6f7cd2bf70e13": {
-      "id": "Tablet",
-      "platform": "android",
-      "arch": "arm64",
-      "cores": 1,
-      "pairedAt": "2026-10-04T18:00:41.400Z"
-    },
-    "dev_50e09dfed53ae9759276fc50d146f2ebc006643a21d26896": {
+    "dev_d9f1608c5dd4973613a1b27d9466c420d40201652a1ed944": {
       "id": "localhost",
       "platform": "android",
       "arch": "arm64",
       "cores": 1,
-      "pairedAt": "2026-10-04T18:47:43.057Z"
+      "pairedAt": "2026-10-15T08:48:28.699Z"
     }
   }
 }

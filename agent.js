@@ -1,9 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
-import { startRelayServer } from './src/relay/index.js';
+import { startAgent } from './src/agent/index.js';
 
-// Zero-dependency .env loader for local development
+// Zero-dependency .env loader
 const envPath = path.resolve('.env');
 if (fs.existsSync(envPath)) {
   const envConfig = fs.readFileSync(envPath, 'utf8').split('\n');
@@ -15,41 +14,16 @@ if (fs.existsSync(envPath)) {
   }
 }
 
-const PORT = process.env.PORT || 8080;
-const SECRET_TOKEN = process.env.SECRET_TOKEN;
+// Parse command line arguments
+const args = process.argv.slice(2).reduce((acc, arg) => {
+  const [key, value] = arg.replace(/^--/, '').split('=');
+  if (key) acc[key] = value || true;
+  return acc;
+}, {});
 
-if (!SECRET_TOKEN) {
-  console.error('❌ FATAL ERROR: SECRET_TOKEN is missing. Define it in .env.');
-  process.exit(1);
-}
+// Priority: 1. CLI flag (--relay=) 2. .env file (RELAY_URL=) 3. Default (localhost)
+const RELAY_URL = args.relay || process.env.RELAY_URL || 'ws://localhost:8080';
+const STORAGE_PATH = args.storage || process.env.STORAGE_PATH || './nanocloud_storage';
 
-// Auto-detect the Wi-Fi / LAN IP address
-function getLocalIp() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      // Skip internal (localhost) and non-IPv4 addresses
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return null;
-}
-
-startRelayServer(PORT, SECRET_TOKEN).then(() => {
-  const localIp = getLocalIp();
-  
-  console.log(`\n================================================`);
-  console.log(` 🚀 NanoCloud Relay Server Active`);
-  console.log(`================================================`);
-  console.log(` To connect an agent on THIS same device:`);
-  console.log(` -> node agent.js`);
-  
-  if (localIp) {
-    console.log(`\n To connect agents on OTHER devices on Wi-Fi:`);
-    console.log(` -> node agent.js --relay=ws://${localIp}:${PORT}`);
-  }
-  console.log(`================================================\n`);
-});
+startAgent(RELAY_URL, STORAGE_PATH);
 

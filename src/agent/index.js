@@ -28,53 +28,77 @@ export async function startAgent(relayUrl, storagePath) {
     }
 
     if (powerMode === 'normal') {
-      console.log('[Power] Normal Mode: Live telemetry active (2s loop).');
+      console.log(' 🟢 [Power] Normal Mode: Live telemetry active (2s loop).');
       pushTelemetry(client);
       telemetryTimer = setInterval(() => pushTelemetry(client), 2000);
     } else {
-      console.log('[Power] Eco Standby: Polling suspended. Listening for commands.');
-      // Send a single frame confirming standby state, then stop looping
+      console.log(' 🟡 [Power] Eco Standby: Polling suspended. Listening for wake signal.');
       pushTelemetry(client);
     }
   };
 
   const handleMessage = async (data, client) => {
-    // Ping/Pong RTT Echo (WebSocket loop latency)
+    // Ping/Pong RTT Echo
     if (data.type === 'PING') {
       client.send({ type: 'PONG', clientTs: data.clientTs });
       return;
     }
 
+    // ==========================================
+    // PAIRING & REGISTRATION FLOW
+    // ==========================================
     if (data.type === MSG_TYPES.ENROLL_PIN_ISSUED) {
-      console.log('==================================================');
-      console.log(` [NanoCloud] Host Unregistered`);
-      console.log(` Claim PIN : ${data.pin}`);
-      console.log(` Enter this PIN in your dashboard to pair this host.`);
-      console.log('==================================================');
+      console.log('\n==================================================');
+      console.log(` ⚠️  [NanoCloud] Host Not Registered`);
+      console.log(` -------------------------------------------------`);
+      console.log(` 📌 CLAIM PIN : ${data.pin}`);
+      console.log(` -------------------------------------------------`);
+      console.log(` 1. Open your NanoCloud Web Dashboard.`);
+      console.log(` 2. Click "+ Register Node" in the sidebar.`);
+      console.log(` 3. Enter the PIN above to permanently link this device.`);
+      console.log('==================================================\n');
+      console.log(' ⏳ Waiting for dashboard claim... (Do not close this window)');
       return;
     }
 
     if (data.type === MSG_TYPES.ENROLL_SUCCESS) {
-      console.log(`[Agent] Host paired as: ${data.deviceId}`);
-      existingCreds = { deviceId: data.deviceId, deviceToken: data.deviceToken, pairedAt: new Date().toISOString() };
+      console.log(`\n ✅ [Agent] Claim Successful! Device paired as: ${data.deviceId}`);
+      existingCreds = { 
+        deviceId: data.deviceId, 
+        deviceToken: data.deviceToken, 
+        pairedAt: new Date().toISOString() 
+      };
+      
+      // Save to disk
       await saveCredentials(existingCreds);
-      applyPowerProfile('normal', client);
+      
+      // CRITICAL FIX: Formally log into the live socket using the new token
+      console.log(` 🔄 Authenticating session...`);
+      client.send({ 
+        type: MSG_TYPES.AUTH_REQ, 
+        role: ROLES.AGENT, 
+        deviceToken: data.deviceToken, 
+        metadata 
+      });
       return;
     }
 
     if (data.type === MSG_TYPES.AUTH_RES) {
-      console.log(`[Agent] Authenticated as "${existingCreds?.deviceId}".`);
+      console.log(` 🚀 [Agent] Session Authenticated ("${existingCreds?.deviceId}"). Online.`);
       applyPowerProfile('normal', client);
       return;
     }
 
+    // ==========================================
+    // COMMAND HANDLING
+    // ==========================================
     if (data.type === MSG_TYPES.CMD_SET_POWER) {
       applyPowerProfile(data.mode, client);
       client.send({ type: MSG_TYPES.CMD_ACK, action: 'power_mode', status: 'success', powerMode });
     }
 
     if (data.type === MSG_TYPES.CMD_KILL) {
-      console.log('[Agent] Remote kill received. Terminating.');
+      console.log(' 💀 [Agent] Remote kill received. Terminating.');
       process.exit(0);
     }
 
@@ -101,7 +125,7 @@ export async function startAgent(relayUrl, storagePath) {
         if (powerMode === 'normal') pushTelemetry(client);
       }
     } catch (err) {
-      console.error('[Agent] Storage operation error:', err.message);
+      console.error(' ❌ [Agent] Storage operation error:', err.message);
     }
   };
 
